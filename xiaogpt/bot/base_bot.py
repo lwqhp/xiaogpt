@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, TypeVar
+from typing import Any, AsyncGenerator, TypeVar, Dict, List
 
 from xiaogpt.config import Config
 
@@ -34,15 +34,16 @@ class BaseBot(ABC):
 
 
 class ChatHistoryMixin:
-    history: list[tuple[str, str]]
+    history: List[Dict[str, str]]
 
     def has_history(self) -> bool:
         return bool(self.history)
 
     def change_prompt(self, new_prompt: str) -> None:
         if self.history:
-            print(self.history)
-            self.history[0][0] = new_prompt
+            #print(self.history)
+            #self.history[0][0] = new_prompt
+            self.history[0] = {"role":"user","content":new_prompt}
 
     def get_messages(self) -> list[dict]:
         ms = []

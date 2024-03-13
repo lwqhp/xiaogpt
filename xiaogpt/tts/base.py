@@ -4,7 +4,8 @@ import abc
 import asyncio
 import functools
 import json
-import logging
+#import logging
+from xiaogpt.log import logger
 import os
 import random
 import socket
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
 
     T = TypeVar("T", bound="TTS")
 
-logger = logging.getLogger(__name__)
+#logger = logging.getLogger(__name__)
 
 
 class TTS(abc.ABC):
@@ -39,7 +40,9 @@ class TTS(abc.ABC):
         self.config = config
 
     async def wait_for_duration(self, duration: float) -> None:
-        """Wait for the specified duration."""
+        """Wait for the specified duration.
+        duration默认等待时间，然后每隔一秒，一直等到小爱播放说完
+        """
         await asyncio.sleep(duration)
         while True:
             if not await self.get_if_xiaoai_is_playing():
@@ -63,10 +66,10 @@ class TTS(abc.ABC):
 
 class HTTPRequestHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
-        logger.debug(f"{self.address_string()} - {format}", *args)
+        logger.debug(f"{self.address_string()} - {format % args}")
 
     def log_error(self, format, *args):
-        logger.error(f"{self.address_string()} - {format}", *args)
+        logger.error(f"{self.address_string()} - {format % args}")
 
     def copyfile(self, source, outputfile):
         try:
@@ -107,26 +110,54 @@ class AudioFileTTS(TTS):
 
         task = asyncio.create_task(worker())
         while not queue.empty() or not finished.is_set():
-            done, other = await asyncio.wait(
-                [
-                    asyncio.ensure_future(queue.get()),
-                    asyncio.ensure_future(finished.wait()),
-                ],
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-            if other:
-                other.pop().cancel()
+            if not queue.empty():
+                done, other = await asyncio.wait(
+                    [asyncio.ensure_future(queue.get())],
+                    return_when=asyncio.FIRST_COMPLETED
+                )
+                if other:
+                    other.pop().cancel()
 
-            result = done.pop().result()
-            if result is True:
-                # finished is set, break the loop
-                break
+                result = done.pop().result()
+            if not finished.is_set():
+                done_set = await asyncio.wait(
+                    [asyncio.ensure_future(finished.wait())],
+                    return_when=asyncio.FIRST_COMPLETED
+                )
+                if done_set is True:
+                    # finished is set, break the loop
+                    logger.info(f"Playing finished {done_set}")
+                    break
             else:
                 url, duration = result
-                logger.debug("Playing URL %s(%s seconds)", url, duration)
+                logger.info(f"Playing URL {url}({duration} seconds)")
                 await self.mina_service.play_by_url(self.device_id, url)
                 await self.wait_for_duration(duration)
         await task
+        # while not queue.empty() or not finished.is_set():
+        #     done, other = await asyncio.wait(
+        #         [
+        #             asyncio.ensure_future(finished.wait()),
+        #             asyncio.ensure_future(queue.get()),
+        #         ],
+        #         return_when=asyncio.FIRST_COMPLETED,
+        #     )
+        #     logger.info(f"Playing other {other}")
+        #     if other:
+        #         other.pop().cancel()
+        #
+        #     result = done.pop().result()
+        #     logger.info(f"Playing URL {result}")
+        #     if result is True:
+        #         # finished is set, break the loop
+        #         #print(result)
+        #         break
+        #     else:
+        #         url, duration = result
+        #         logger.info(f"Playing URL {url}({duration} seconds)")
+        #         await self.mina_service.play_by_url(self.device_id, url)
+        #         await self.wait_for_duration(duration)
+        # await task
 
     def _start_http_server(self):
         # set the port range

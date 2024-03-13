@@ -11,7 +11,13 @@ from xiaogpt.utils import find_key_by_partial_string
 class EdgeTTS(AudioFileTTS):
     default_voice = "zh-CN-XiaoxiaoNeural"
 
+
     async def make_audio_file(self, query: str, text: str) -> tuple[Path, float]:
+        """
+        query:用户提问
+        text：回复内容
+        return: 生成音频的地址和时长
+        """
         voice = (
             find_key_by_partial_string(EDGE_TTS_DICT, query)
             or self.config.tts_voice

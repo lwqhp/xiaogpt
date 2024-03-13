@@ -45,6 +45,7 @@ EDGE_TTS_DICT = {
 DEFAULT_COMMAND = ("5-1", "5-5")
 
 KEY_WORD = ("帮我", "请")
+ROLE_WORD = ("你是一个","你是一位")
 CHANGE_PROMPT_KEY_WORD = ("更改提示词",)
 PROMPT = "以下请用100字以内回答，请只回答文字不要带链接"
 # simulate_xiaoai_question
@@ -69,6 +70,8 @@ class Config:
     proxy: str | None = None
     mi_did: str = os.getenv("MI_DID", "")
     keyword: Iterable[str] = KEY_WORD
+    roleword: Iterable[str] = ROLE_WORD
+    role_prompt_config = "prompt_config.json"
     change_prompt_keyword: Iterable[str] = CHANGE_PROMPT_KEY_WORD
     prompt: str = PROMPT
     mute_xiaoai: bool = False
@@ -78,8 +81,8 @@ class Config:
     deployment_id: str | None = None
     use_command: bool = False
     verbose: bool = False
-    start_conversation: str = "开始持续对话"
-    end_conversation: str = "结束持续对话"
+    start_conversation: str = "主题对话"
+    end_conversation: str = "结束对话"
     stream: bool = False
     tts: Literal["mi", "edge"] = "mi"
     tts_voice: str | None = None
@@ -161,4 +164,16 @@ class Config:
                     key, value = "tts", "edge"
                 if key in cls.__dataclass_fields__:
                     result[key] = value
+        return result
+
+    @classmethod
+    def read_role_prompt(cls, config_path: str,query: str) -> dict:
+        result = {}
+        with open(config_path, "rb") as f:
+            config = json.load(f)
+            for key, value in config.items():
+                if value is None:
+                    continue
+                if query in key:
+                    result[query] = value
         return result

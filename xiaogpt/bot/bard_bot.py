@@ -1,11 +1,8 @@
 """ChatGLM bot"""
 
 from __future__ import annotations
-
 from typing import Any
-
 from rich import print
-
 from xiaogpt.bot.base_bot import BaseBot, ChatHistoryMixin
 
 

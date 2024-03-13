@@ -6,7 +6,7 @@ from http import HTTPStatus
 from typing import Any
 
 from rich import print
-
+from xiaogpt.log import logger
 from xiaogpt.bot.base_bot import BaseBot, ChatHistoryMixin
 
 
@@ -30,6 +30,7 @@ class QwenBot(ChatHistoryMixin, BaseBot):
 
         # from https://help.aliyun.com/zh/dashscope/developer-reference/api-details
         self.history.append({"role": Role.USER, "content": query})
+        #print(self.history)
 
         response = Generation.call(
             Generation.Models.qwen_turbo,
@@ -48,10 +49,11 @@ class QwenBot(ChatHistoryMixin, BaseBot):
             # keep last five
             first_history = self.history.pop(0)
             self.history = [first_history] + self.history[-5:]
-            print(content)
+            #print(self.history)
+            logger.info(content)
             return content
         else:
-            print(
+            logger.error(
                 "Request id: %s, Status code: %s, error code: %s, error message: %s"
                 % (
                     response.request_id,
@@ -61,7 +63,7 @@ class QwenBot(ChatHistoryMixin, BaseBot):
                 )
             )
             # we need to pop the wrong history
-            print(f"Will pop the wrong question {query}")
+            logger.error(f"Will pop the wrong question {query}")
             self.history.pop()
             return "没有返回"
 
